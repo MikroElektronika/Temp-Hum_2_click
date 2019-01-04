@@ -1,0 +1,75 @@
+{*
+Example for TempHum2 Click
+
+    Date          : apr 2018.
+    Author        : Katarina Perendic
+
+Test configuration dsPIC :
+    
+    MCU                : P33FJ256GP710A
+    Dev. Board         : EasyPIC Fusion v7
+    dsPIC Compiler ver : v7.0.1.0
+
+---
+
+Description :
+
+The application is composed of three sections :
+
+- System Initialization - Initializes I2C module
+- Application Initialization - Initializes driver init, set work mode and Heater
+- Application Task - (code snippet) - Reads temperature and humidity and logs values on usbuart for every 500ms.
+*}
+program Click_TempHum2_DSPIC;
+
+uses Click_TempHum2_types, Click_TempHum2_config;
+
+var
+    dataText : array[20] of char; 
+    dataBuffer : array[2] of real; 
+    
+procedure systemInit(); 
+begin
+
+    mikrobus_i2cInit(_MIKROBUS1, @_TEMPHUM2_I2C_CFG[0]); 
+    mikrobus_logInit(_LOG_USBUART_A, 9600); 
+    mikrobus_logWrite(' --- System Init --- ', _LOG_LINE); 
+    Delay_ms(100); 
+
+end;
+
+procedure applicationInit(); 
+begin
+
+    temphum2_i2cDriverInit(T_TEMPHUM2_P(@_MIKROBUS1_GPIO), T_TEMPHUM2_P(@_MIKROBUS1_I2C), 0x70); 
+    temphum2_setMode(_TEMPHUM2_NO_HOLD_MODE, _TEMPHUM2_NORMAL_MODE); 
+    temphum2_writeByte(_TEMPHUM2_REG_WRITE_HEATER_CONTROL, (_TEMPHUM2_HEATER_ENABLE or _TEMPHUM2_HEATER_CURRENT_6_4mA)); 
+
+end;
+
+procedure applicationTask(); 
+begin
+
+    temphum2_getMeasurement(@dataBuffer[0]); 
+    mikrobus_logWrite(' --- Temperature : ', _LOG_TEXT); 
+    FloatToStr(dataBuffer[0], dataText); 
+    mikrobus_logWrite(dataText, _LOG_TEXT); 
+    mikrobus_logWrite(' C', _LOG_LINE); 
+    mikrobus_logWrite(' --- Humidity : ', _LOG_TEXT); 
+    FloatToStr(dataBuffer[1], dataText); 
+    mikrobus_logWrite(dataText, _LOG_TEXT); 
+    mikrobus_logWrite(' %RH', _LOG_LINE); 
+    Delay_ms(500); 
+
+end;
+
+begin
+
+    systemInit(); 
+    applicationInit(); 
+    while (1) do 
+    begin 
+        applicationTask(); 
+    end;
+
+end.

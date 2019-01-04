@@ -1,0 +1,72 @@
+'
+'Example for TempHum2 Click
+'
+'    Date          : apr 2018.
+'    Author        : Katarina Perendic
+'
+'Test configuration KINETIS :
+'    
+'    MCU              : MK64
+'    Dev. Board       : HEXIWEAR
+'    ARM Compiler ver : v6.0.0.0
+'
+'---
+'
+'Description :
+'
+'The application is composed of three sections :
+'
+'- System Initialization - Initializes I2C module
+'- Application Initialization - Initializes driver init, set work mode and Heater
+'- Application Task - (code snippet) - Reads temperature and humidity and logs values on usbuart for every 500ms.
+'
+program Click_TempHum2_KINETIS
+
+include Click_TempHum2_types
+include Click_TempHum2_config
+
+dim
+    dataText as char[20] 
+    dataBuffer as float[2] 
+    
+sub procedure systemInit() 
+
+    mikrobus_i2cInit(_MIKROBUS1, @_TEMPHUM2_I2C_CFG[0]) 
+    mikrobus_logInit(_LOG_USBUART, 9600) 
+    mikrobus_logWrite(" --- System Init --- ", _LOG_LINE) 
+    Delay_ms(100) 
+
+end sub
+
+sub procedure applicationInit() 
+
+    temphum2_i2cDriverInit(T_TEMPHUM2_P(@_MIKROBUS1_GPIO), T_TEMPHUM2_P(@_MIKROBUS1_I2C), 0x70) 
+    temphum2_setMode(_TEMPHUM2_NO_HOLD_MODE, _TEMPHUM2_NORMAL_MODE) 
+    temphum2_writeByte(_TEMPHUM2_REG_WRITE_HEATER_CONTROL, (_TEMPHUM2_HEATER_ENABLE or _TEMPHUM2_HEATER_CURRENT_6_4mA)) 
+
+end sub
+
+sub procedure applicationTask() 
+
+    temphum2_getMeasurement(@dataBuffer[0]) 
+    mikrobus_logWrite(" --- Temperature : ", _LOG_TEXT) 
+    FloatToStr(dataBuffer[0], dataText) 
+    mikrobus_logWrite(dataText, _LOG_TEXT) 
+    mikrobus_logWrite(" C", _LOG_LINE) 
+    mikrobus_logWrite(" --- Humidity : ", _LOG_TEXT) 
+    FloatToStr(dataBuffer[1], dataText) 
+    mikrobus_logWrite(dataText, _LOG_TEXT) 
+    mikrobus_logWrite(" %RH", _LOG_LINE) 
+    Delay_ms(500) 
+
+end sub
+
+main :
+
+    systemInit() 
+    applicationInit() 
+    while (1) 
+        applicationTask() 
+    wend
+
+end.
